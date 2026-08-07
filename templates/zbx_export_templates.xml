@@ -1,0 +1,446 @@
+<zabbix_export>
+  <version>5.0</version>
+  <date>2026-08-07T13:22:16Z</date>
+  <groups>
+    <group>
+      <name>Templates/Applications</name>
+    </group>
+  </groups>
+  <templates>
+    <template>
+      <template>Template OPC Unified Architecture by Zabbix agent 2</template>
+      <name>Template OPC Unified Architecture by Zabbix agent 2</name>
+      <description>Version: __TEMPLATE_VERSION__</description>
+      <groups>
+        <group>
+          <name>Templates/Applications</name>
+        </group>
+      </groups>
+      <applications>
+        <application>
+          <name>OPC UA</name>
+        </application>
+      </applications>
+      <items>
+        <item>
+          <name>OPC UA Server Status (ns=0;i=2256)</name>
+          <key>opcua.get["{$OPCUA.URI}","{$OPCUA.USER}","{$OPCUA.PASSWORD}","ns=0;i=2256"]</key>
+          <history>7d</history>
+          <trends>0</trends>
+          <value_type>TEXT</value_type>
+          <applications>
+            <application>
+              <name>OPC UA</name>
+            </application>
+          </applications>
+        </item>
+        <item>
+          <name>OPC UA Server Current Time (ns=0;i=2258)</name>
+          <key>opcua.get["{$OPCUA.URI}","{$OPCUA.USER}","{$OPCUA.PASSWORD}","ns=0;i=2258"]</key>
+          <history>7d</history>
+          <value_type>FLOAT</value_type>
+          <units>unixtime</units>
+          <applications>
+            <application>
+              <name>OPC UA</name>
+            </application>
+          </applications>
+          <preprocessing>
+            <step>
+              <type>JAVASCRIPT</type>
+              <params>return Math.floor(Date.parse(value) / 1000);</params>
+            </step>
+          </preprocessing>
+        </item>
+        <item>
+          <name>OPC UA Server State (ns=0;i=2259)</name>
+          <key>opcua.get["{$OPCUA.URI}","{$OPCUA.USER}","{$OPCUA.PASSWORD}","ns=0;i=2259"]</key>
+          <history>7d</history>
+          <applications>
+            <application>
+              <name>OPC UA</name>
+            </application>
+          </applications>
+          <valuemap>
+            <name>OPC UA ServerState</name>
+          </valuemap>
+        </item>
+        <item>
+          <name>OPC UA Server Current Time (info)</name>
+          <type>DEPENDENT</type>
+          <key>opcua.info.current_time</key>
+          <delay>0</delay>
+          <history>7d</history>
+          <value_type>FLOAT</value_type>
+          <units>unixtime</units>
+          <applications>
+            <application>
+              <name>OPC UA</name>
+            </application>
+          </applications>
+          <preprocessing>
+            <step>
+              <type>JSONPATH</type>
+              <params>$.current_time</params>
+            </step>
+            <step>
+              <type>JAVASCRIPT</type>
+              <params>return Math.floor(Date.parse(value) / 1000);</params>
+            </step>
+          </preprocessing>
+          <master_item>
+            <key>opcua.info["{$OPCUA.URI}","{$OPCUA.USER}","{$OPCUA.PASSWORD}"]</key>
+          </master_item>
+        </item>
+        <item>
+          <name>OPC UA Server Start Time (info)</name>
+          <type>DEPENDENT</type>
+          <key>opcua.info.start_time</key>
+          <delay>0</delay>
+          <history>7d</history>
+          <value_type>FLOAT</value_type>
+          <units>unixtime</units>
+          <applications>
+            <application>
+              <name>OPC UA</name>
+            </application>
+          </applications>
+          <preprocessing>
+            <step>
+              <type>JSONPATH</type>
+              <params>$.start_time</params>
+            </step>
+            <step>
+              <type>JAVASCRIPT</type>
+              <params>return Math.floor(Date.parse(value) / 1000);</params>
+            </step>
+          </preprocessing>
+          <master_item>
+            <key>opcua.info["{$OPCUA.URI}","{$OPCUA.USER}","{$OPCUA.PASSWORD}"]</key>
+          </master_item>
+        </item>
+        <item>
+          <name>OPC UA Server State Name (info)</name>
+          <type>DEPENDENT</type>
+          <key>opcua.info.state</key>
+          <delay>0</delay>
+          <history>7d</history>
+          <trends>0</trends>
+          <value_type>CHAR</value_type>
+          <applications>
+            <application>
+              <name>OPC UA</name>
+            </application>
+          </applications>
+          <preprocessing>
+            <step>
+              <type>JSONPATH</type>
+              <params>$.state</params>
+            </step>
+          </preprocessing>
+          <master_item>
+            <key>opcua.info["{$OPCUA.URI}","{$OPCUA.USER}","{$OPCUA.PASSWORD}"]</key>
+          </master_item>
+        </item>
+        <item>
+          <name>OPC UA Server State Code (info)</name>
+          <type>DEPENDENT</type>
+          <key>opcua.info.state_code</key>
+          <delay>0</delay>
+          <history>7d</history>
+          <applications>
+            <application>
+              <name>OPC UA</name>
+            </application>
+          </applications>
+          <valuemap>
+            <name>OPC UA ServerState</name>
+          </valuemap>
+          <preprocessing>
+            <step>
+              <type>JSONPATH</type>
+              <params>$.state_code</params>
+            </step>
+          </preprocessing>
+          <master_item>
+            <key>opcua.info["{$OPCUA.URI}","{$OPCUA.USER}","{$OPCUA.PASSWORD}"]</key>
+          </master_item>
+        </item>
+        <item>
+          <name>OPC UA Server Current Session Count (info)</name>
+          <type>DEPENDENT</type>
+          <key>opcua.info.session_count</key>
+          <delay>0</delay>
+          <history>7d</history>
+          <applications>
+            <application>
+              <name>OPC UA</name>
+            </application>
+          </applications>
+          <preprocessing>
+            <step>
+              <type>JSONPATH</type>
+              <params>$.current_session_count</params>
+            </step>
+          </preprocessing>
+          <master_item>
+            <key>opcua.info["{$OPCUA.URI}","{$OPCUA.USER}","{$OPCUA.PASSWORD}"]</key>
+          </master_item>
+        </item>
+        <item>
+          <name>OPC UA Server Current Subscription Count (info)</name>
+          <type>DEPENDENT</type>
+          <key>opcua.info.subscription_count</key>
+          <delay>0</delay>
+          <history>7d</history>
+          <applications>
+            <application>
+              <name>OPC UA</name>
+            </application>
+          </applications>
+          <preprocessing>
+            <step>
+              <type>JSONPATH</type>
+              <params>$.current_subscription_count</params>
+            </step>
+          </preprocessing>
+          <master_item>
+            <key>opcua.info["{$OPCUA.URI}","{$OPCUA.USER}","{$OPCUA.PASSWORD}"]</key>
+          </master_item>
+        </item>
+        <item>
+          <name>OPC UA Certificate Subject (info)</name>
+          <type>DEPENDENT</type>
+          <key>opcua.info.cert.subject</key>
+          <delay>0</delay>
+          <history>7d</history>
+          <trends>0</trends>
+          <value_type>TEXT</value_type>
+          <applications>
+            <application>
+              <name>OPC UA</name>
+            </application>
+          </applications>
+          <preprocessing>
+            <step>
+              <type>JSONPATH</type>
+              <params>$.certificate.subject</params>
+            </step>
+          </preprocessing>
+          <master_item>
+            <key>opcua.info["{$OPCUA.URI}","{$OPCUA.USER}","{$OPCUA.PASSWORD}"]</key>
+          </master_item>
+        </item>
+        <item>
+          <name>OPC UA Certificate Issuer (info)</name>
+          <type>DEPENDENT</type>
+          <key>opcua.info.cert.issuer</key>
+          <delay>0</delay>
+          <history>7d</history>
+          <trends>0</trends>
+          <value_type>TEXT</value_type>
+          <applications>
+            <application>
+              <name>OPC UA</name>
+            </application>
+          </applications>
+          <preprocessing>
+            <step>
+              <type>JSONPATH</type>
+              <params>$.certificate.issuer</params>
+            </step>
+          </preprocessing>
+          <master_item>
+            <key>opcua.info["{$OPCUA.URI}","{$OPCUA.USER}","{$OPCUA.PASSWORD}"]</key>
+          </master_item>
+        </item>
+        <item>
+          <name>OPC UA Certificate Valid From (info)</name>
+          <type>DEPENDENT</type>
+          <key>opcua.info.cert.not_before</key>
+          <delay>0</delay>
+          <history>7d</history>
+          <value_type>FLOAT</value_type>
+          <units>unixtime</units>
+          <applications>
+            <application>
+              <name>OPC UA</name>
+            </application>
+          </applications>
+          <preprocessing>
+            <step>
+              <type>JSONPATH</type>
+              <params>$.certificate.not_before</params>
+            </step>
+            <step>
+              <type>JAVASCRIPT</type>
+              <params>return Math.floor(Date.parse(value) / 1000);</params>
+            </step>
+          </preprocessing>
+          <master_item>
+            <key>opcua.info["{$OPCUA.URI}","{$OPCUA.USER}","{$OPCUA.PASSWORD}"]</key>
+          </master_item>
+        </item>
+        <item>
+          <name>OPC UA Certificate Valid Until (info)</name>
+          <type>DEPENDENT</type>
+          <key>opcua.info.cert.not_after</key>
+          <delay>0</delay>
+          <history>7d</history>
+          <value_type>FLOAT</value_type>
+          <units>unixtime</units>
+          <applications>
+            <application>
+              <name>OPC UA</name>
+            </application>
+          </applications>
+          <preprocessing>
+            <step>
+              <type>JSONPATH</type>
+              <params>$.certificate.not_after</params>
+            </step>
+            <step>
+              <type>JAVASCRIPT</type>
+              <params>return Math.floor(Date.parse(value) / 1000);</params>
+            </step>
+          </preprocessing>
+          <master_item>
+            <key>opcua.info["{$OPCUA.URI}","{$OPCUA.USER}","{$OPCUA.PASSWORD}"]</key>
+          </master_item>
+        </item>
+        <item>
+          <name>OPC UA Certificate Days Until Expiration (info)</name>
+          <type>DEPENDENT</type>
+          <key>opcua.info.cert.days_until_expiration</key>
+          <delay>0</delay>
+          <history>7d</history>
+          <value_type>FLOAT</value_type>
+          <units>!days</units>
+          <applications>
+            <application>
+              <name>OPC UA</name>
+            </application>
+          </applications>
+          <preprocessing>
+            <step>
+              <type>JSONPATH</type>
+              <params>$.certificate.days_until_expiration</params>
+            </step>
+          </preprocessing>
+          <master_item>
+            <key>opcua.info["{$OPCUA.URI}","{$OPCUA.USER}","{$OPCUA.PASSWORD}"]</key>
+          </master_item>
+          <triggers>
+            <trigger>
+              <expression>{last()}&lt;0</expression>
+              <name>OPC UA certificate has expired</name>
+              <priority>HIGH</priority>
+            </trigger>
+            <trigger>
+              <expression>{last()}&lt;30 and {last()}&gt;=0</expression>
+              <name>OPC UA certificate expires in less than 30 days</name>
+              <priority>WARNING</priority>
+            </trigger>
+          </triggers>
+        </item>
+        <item>
+          <name>OPC UA Server Info</name>
+          <key>opcua.info["{$OPCUA.URI}","{$OPCUA.USER}","{$OPCUA.PASSWORD}"]</key>
+          <history>0</history>
+          <trends>0</trends>
+          <value_type>TEXT</value_type>
+          <applications>
+            <application>
+              <name>OPC UA</name>
+            </application>
+          </applications>
+        </item>
+        <item>
+          <name>OPC UA service ping</name>
+          <key>opcua.ping["{$OPCUA.URI}","{$OPCUA.USER}","{$OPCUA.PASSWORD}"]</key>
+          <history>7d</history>
+          <applications>
+            <application>
+              <name>OPC UA</name>
+            </application>
+          </applications>
+          <valuemap>
+            <name>Service state</name>
+          </valuemap>
+          <triggers>
+            <trigger>
+              <expression>{last()}=0</expression>
+              <name>OPC UA server is unreachable</name>
+              <priority>AVERAGE</priority>
+            </trigger>
+          </triggers>
+        </item>
+      </items>
+      <macros>
+        <macro>
+          <macro>{$OPCUA.PASSWORD}</macro>
+          <type>SECRET_TEXT</type>
+        </macro>
+        <macro>
+          <macro>{$OPCUA.URI}</macro>
+          <value>opc.tcp://127.0.0.1:4840</value>
+        </macro>
+        <macro>
+          <macro>{$OPCUA.USER}</macro>
+        </macro>
+      </macros>
+    </template>
+  </templates>
+  <value_maps>
+    <value_map>
+      <name>OPC UA ServerState</name>
+      <mappings>
+        <mapping>
+          <value>0</value>
+          <newvalue>Running</newvalue>
+        </mapping>
+        <mapping>
+          <value>1</value>
+          <newvalue>Failed</newvalue>
+        </mapping>
+        <mapping>
+          <value>2</value>
+          <newvalue>NoConfiguration</newvalue>
+        </mapping>
+        <mapping>
+          <value>3</value>
+          <newvalue>Suspended</newvalue>
+        </mapping>
+        <mapping>
+          <value>4</value>
+          <newvalue>Shutdown</newvalue>
+        </mapping>
+        <mapping>
+          <value>5</value>
+          <newvalue>Test</newvalue>
+        </mapping>
+        <mapping>
+          <value>6</value>
+          <newvalue>CommunicationFault</newvalue>
+        </mapping>
+        <mapping>
+          <value>7</value>
+          <newvalue>Unknown</newvalue>
+        </mapping>
+      </mappings>
+    </value_map>
+    <value_map>
+      <name>Service state</name>
+      <mappings>
+        <mapping>
+          <value>0</value>
+          <newvalue>Down</newvalue>
+        </mapping>
+        <mapping>
+          <value>1</value>
+          <newvalue>Up</newvalue>
+        </mapping>
+      </mappings>
+    </value_map>
+  </value_maps>
+</zabbix_export>
