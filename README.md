@@ -185,15 +185,41 @@ Fetches server diagnostic metrics and certificate expiration data formatted as J
 ### `opcua.get`
 
 ```
-opcua.get[<ConnString>[,User][,Password],NodeID]
+opcua.get[<ConnString>[,User][,Password],NodeID[,OutputFormat]]
 ```
 
-Reads the value of a single OPC UA NodeID.
+Reads the value and (optionally) metadata of a single OPC UA NodeID.
 
 *Parameters:*
 * `NodeID` (mandatory): Target NodeID string (e.g. `ns=0;i=2258`, `ns=2;s=Factory.Line1.Temperature`).
+* `OutputFormat` (optional): Output format selector:
+  * `value`: Returns the raw node value directly (string, integer, float, boolean, etc.).
+  * `json`: Returns a JSON object with raw value and metadata info.
 
-*Returns:* Raw node value (string, integer, float, boolean, etc.).
+*JSON response fields (`OutputFormat = json`):*
+* `value` — Node value (or `null` if the node status is not Good)
+* `status` — Lowercase OPC UA status code name (e.g. `good`, `badsensorfailure`, `badtimeout`)
+* `status_code` — Numeric unsigned 32-bit status code (0 for Good)
+* `severity` — Quality severity: `good`, `uncertain`, or `bad`
+* `data_type` — Lowercase OPC UA variant data type (e.g. `float`, `double`, `int32`, `string`, `boolean`)
+* `source_timestamp` — Source timestamp as numeric Unix epoch seconds (or 0 if not provided)
+* `server_timestamp` — Server timestamp as numeric Unix epoch seconds (or 0 if not provided)
+
+*Returns:* Raw node value (string, integer, float, boolean, etc.) or JSON formatted data.
+
+*Example output (`OutputFormat = json`):*
+
+```json
+{
+  "value": 42.5,
+  "status": "good",
+  "status_code": 0,
+  "severity": "good",
+  "data_type": "float",
+  "source_timestamp": 1727169300,
+  "server_timestamp": 1727169300
+}
+```
 
 ### `opcua.discovery`
 

@@ -20,12 +20,25 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gopcua/opcua/ua"
 )
 
 // getHandler reads a single OPC UA NodeID and returns its raw or JSON-formatted value.
+// GetPayload represents the JSON output format for opcua.get containing value and metadata info.
+type GetPayload struct {
+	Value           interface{} `json:"value"`
+	Status          string      `json:"status"`
+	StatusCode      uint32      `json:"status_code"`
+	Severity        string      `json:"severity"`
+	DataType        string      `json:"data_type"`
+	SourceTimestamp int64       `json:"source_timestamp"`
+	ServerTimestamp int64       `json:"server_timestamp"`
+}
+
+// getHandler reads a single OPC UA NodeID and returns its raw value or a JSON object with metadata info.
 func getHandler(ctx context.Context, client clientLike, params map[string]string, _ ...string) (interface{}, error) {
 	nodeIDStr, ok := params["NodeID"]
 	if !ok || nodeIDStr == "" {
@@ -52,6 +65,37 @@ func getHandler(ctx context.Context, client clientLike, params map[string]string
 	}
 
 	result := resp.Results[0]
+
+	if params["OutputFormat"] == "json" {
+		payload := GetPayload{
+			Status:     getStatusName(result.Status),
+			StatusCode: uint32(result.Status),
+			Severity:   getSeverity(result.Status),
+			DataType:   getDataTypeName(result.Value),
+		}
+
+		if !result.SourceTimestamp.IsZero() {
+			payload.SourceTimestamp = result.SourceTimestamp.Unix()
+		}
+		if !result.ServerTimestamp.IsZero() {
+			payload.ServerTimestamp = result.ServerTimestamp.Unix()
+		}
+
+		if result.Status == ua.StatusGood {
+			val := getValue(result)
+			if val != nil {
+				payload.Value = cleanValue(val)
+			}
+		}
+
+		bz, err := json.Marshal(payload)
+		if err != nil {
+			return nil, err
+		}
+		return string(bz), nil
+	}
+
+	// Default "value" format
 	if result.Status != ua.StatusGood {
 		return nil, fmt.Errorf("read failed with status %v for NodeID %s", result.Status, nodeIDStr)
 	}
@@ -62,6 +106,62 @@ func getHandler(ctx context.Context, client clientLike, params map[string]string
 		return nil, fmt.Errorf("no value returned for NodeID %s", nodeIDStr)
 	}
 	return formatValue(val), nil
+}
+
+func getSeverity(status ua.StatusCode) string {
+	switch status & 0xC0000000 {
+	case 0x00000000:
+		return "good"
+	case 0x40000000:
+		return "uncertain"
+	default:
+		return "bad"
+	}
+}
+
+func getStatusName(status ua.StatusCode) string {
+	if status == ua.StatusGood {
+		return "good"
+	}
+	if d, ok := ua.StatusCodes[status]; ok && d.Name != "" {
+		name := strings.TrimPrefix(d.Name, "Status")
+		return strings.ToLower(name)
+	}
+	return fmt.Sprintf("0x%08x", uint32(status))
+}
+
+func getDataTypeName(val *ua.Variant) string {
+	if val == nil {
+		return ""
+	}
+	typeStr := strings.TrimPrefix(val.Type().String(), "TypeID")
+	return strings.ToLower(typeStr)
+}
+
+// cleanValue unwraps OPC UA containers and formats types so they serialize cleanly as JSON.
+func cleanValue(val interface{}) interface{} {
+	if val == nil {
+		return nil
+	}
+
+	val = unwrapValue(val)
+
+	switch v := val.(type) {
+	case time.Time:
+		return v.Format(time.RFC3339)
+	case *ua.LocalizedText:
+		if v != nil {
+			return v.Text
+		}
+		return ""
+	case *ua.QualifiedName:
+		if v != nil {
+			return v.Name
+		}
+		return ""
+	default:
+		return v
+	}
 }
 
 // formatValue unwraps OPC UA containers (like ExtensionObject) and formats scalars as primitive types

@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/gopcua/opcua"
 	"github.com/gopcua/opcua/ua"
@@ -223,5 +224,148 @@ func Test_getHandler_floatValue(t *testing.T) {
 	}
 	if got != float64(3.14) {
 		t.Fatalf("expected 3.14, got %v", got)
+	}
+}
+
+func Test_getHandler_json_good(t *testing.T) {
+	srcTime := time.Date(2026, 9, 24, 9, 15, 0, 0, time.UTC)
+	srvTime := time.Date(2026, 9, 24, 9, 15, 1, 0, time.UTC)
+
+	dv := &ua.DataValue{
+		Status:          ua.StatusGood,
+		Value:           ua.MustVariant(float64(42.5)),
+		SourceTimestamp: srcTime,
+		ServerTimestamp: srvTime,
+	}
+	client := &mockGetClient{dataVals: []*ua.DataValue{dv}}
+	params := map[string]string{
+		"NodeID":       "ns=2;s=Temp",
+		"OutputFormat": "json",
+	}
+
+	got, err := getHandler(context.Background(), client, params)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	str, ok := got.(string)
+	if !ok {
+		t.Fatalf("expected string result for json format, got %T", got)
+	}
+
+	var payload GetPayload
+	if err := json.Unmarshal([]byte(str), &payload); err != nil {
+		t.Fatalf("failed to unmarshal json payload: %v, content: %s", err, str)
+	}
+
+	if payload.Value.(float64) != 42.5 {
+		t.Errorf("expected value 42.5, got %v", payload.Value)
+	}
+	if payload.Status != "good" {
+		t.Errorf("expected status 'good', got %q", payload.Status)
+	}
+	if payload.StatusCode != 0 {
+		t.Errorf("expected status_code 0, got %v", payload.StatusCode)
+	}
+	if payload.Severity != "good" {
+		t.Errorf("expected severity 'good', got %q", payload.Severity)
+	}
+	if payload.DataType != "double" {
+		t.Errorf("expected data_type 'double', got %q", payload.DataType)
+	}
+	if payload.SourceTimestamp != srcTime.Unix() {
+		t.Errorf("expected source_timestamp %d, got %d", srcTime.Unix(), payload.SourceTimestamp)
+	}
+	if payload.ServerTimestamp != srvTime.Unix() {
+		t.Errorf("expected server_timestamp %d, got %d", srvTime.Unix(), payload.ServerTimestamp)
+	}
+}
+
+func Test_getHandler_json_badStatus(t *testing.T) {
+	dv := &ua.DataValue{
+		Status: ua.StatusBadSensorFailure,
+	}
+	client := &mockGetClient{dataVals: []*ua.DataValue{dv}}
+	params := map[string]string{
+		"NodeID":       "ns=2;s=BadSensor",
+		"OutputFormat": "json",
+	}
+
+	got, err := getHandler(context.Background(), client, params)
+	if err != nil {
+		t.Fatalf("expected no Go error for bad status in json format, got: %v", err)
+	}
+
+	var payload GetPayload
+	if err := json.Unmarshal([]byte(got.(string)), &payload); err != nil {
+		t.Fatalf("failed to unmarshal json: %v", err)
+	}
+
+	if payload.Value != nil {
+		t.Errorf("expected value nil for bad status, got %v", payload.Value)
+	}
+	if payload.Severity != "bad" {
+		t.Errorf("expected severity 'bad', got %q", payload.Severity)
+	}
+	if payload.Status != "badsensorfailure" {
+		t.Errorf("expected status 'badsensorfailure', got %q", payload.Status)
+	}
+	if payload.StatusCode != uint32(ua.StatusBadSensorFailure) {
+		t.Errorf("expected status_code %d, got %d", uint32(ua.StatusBadSensorFailure), payload.StatusCode)
+	}
+}
+
+func Test_getHandler_json_uncertainStatus(t *testing.T) {
+	dv := &ua.DataValue{
+		Status: ua.StatusUncertain,
+	}
+	client := &mockGetClient{dataVals: []*ua.DataValue{dv}}
+	params := map[string]string{
+		"NodeID":       "ns=2;s=UncertainSensor",
+		"OutputFormat": "json",
+	}
+
+	got, err := getHandler(context.Background(), client, params)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var payload GetPayload
+	if err := json.Unmarshal([]byte(got.(string)), &payload); err != nil {
+		t.Fatalf("failed to unmarshal: %v", err)
+	}
+	if payload.Severity != "uncertain" {
+		t.Errorf("expected severity 'uncertain', got %q", payload.Severity)
+	}
+	if payload.Status != "uncertain" {
+		t.Errorf("expected status 'uncertain', got %q", payload.Status)
+	}
+}
+
+func Test_getHandler_format_default(t *testing.T) {
+	dv := &ua.DataValue{Status: ua.StatusGood, Value: ua.MustVariant(int32(100))}
+	client := &mockGetClient{dataVals: []*ua.DataValue{dv}}
+
+	// Explicit "value"
+	gotVal, err := getHandler(context.Background(), client, map[string]string{
+		"NodeID":       "ns=2;i=1",
+		"OutputFormat": "value",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotVal.(int32) != 100 {
+		t.Errorf("expected 100, got %v", gotVal)
+	}
+
+	// Omitted / empty OutputFormat defaults to "value"
+	gotDefault, err := getHandler(context.Background(), client, map[string]string{
+		"NodeID": "ns=2;i=1",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotDefault.(int32) != 100 {
+		t.Errorf("expected 100, got %v", gotDefault)
 	}
 }

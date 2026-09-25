@@ -83,7 +83,7 @@ var metrics = metric.MetricSet{
 		getDiscoveryParams(), false,
 	),
 	keyGet: metric.New(
-		"Reads a single NodeID's raw value.",
+		"Reads a single NodeID's raw value or value with metadata in JSON format.",
 		getGetParams(), false,
 	),
 }
@@ -125,6 +125,24 @@ func getHandlerFunc(key string) handlerFunc {
 	default:
 		return nil
 	}
+}
+
+type StringEnumValidator struct {
+	AllowedValues []string
+}
+
+func (v StringEnumValidator) Validate(value *string) error {
+	if value == nil {
+		return nil
+	}
+
+	for _, s := range v.AllowedValues {
+		if *value == s {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("allowed values: %s", strings.Join(v.AllowedValues, ", "))
 }
 
 func (v AgentURIValidator) Validate(value *string) error {
@@ -176,6 +194,9 @@ func getGetParams() []*metric.Param {
 		paramCertFile,
 		paramKeyFile,
 		metric.NewParam("NodeID", "OPC UA NodeID to read.").SetRequired(),
+		metric.NewParam("OutputFormat", "Output format: 'value' (default) or 'json'.").
+			WithDefault("value").
+			WithValidator(StringEnumValidator{AllowedValues: []string{"value", "json"}}),
 	}
 }
 
