@@ -39,6 +39,9 @@ type PluginOptions struct {
 	// Timeout is the maximum time in seconds for waiting when a connection has to be established.
 	Timeout int `conf:"optional,range=1:30"`
 
+	// DiscoveryMaxDepth limits recursion depth for the opcua.discovery key.
+	DiscoveryMaxDepth int `conf:"optional,range=1:999,default=3"`
+
 	// Sessions stores pre-defined named sets of connections settings.
 	Sessions map[string]Session `conf:"optional"`
 
@@ -46,7 +49,9 @@ type PluginOptions struct {
 	Default Session `conf:"optional"`
 }
 
-var DefaultOptions = PluginOptions{}
+var DefaultOptions = PluginOptions{
+	DiscoveryMaxDepth: 3,
+}
 
 // Configure implements the Configurator interface.
 func (p *Plugin) Configure(global *plugin.GlobalOptions, options interface{}) {
@@ -58,6 +63,10 @@ func (p *Plugin) Configure(global *plugin.GlobalOptions, options interface{}) {
 
 	if p.options.Timeout == 0 {
 		p.options.Timeout = global.Timeout
+	}
+
+	if p.options.DiscoveryMaxDepth == 0 {
+		p.options.DiscoveryMaxDepth = 3
 	}
 }
 

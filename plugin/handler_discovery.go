@@ -48,7 +48,7 @@ func discoveryHandler(ctx context.Context,
 
 	var results []LLDItem
 	visited := make(map[string]bool)
-	maxDepth := 3 // Safe default depth limit
+	maxDepth := Impl.options.DiscoveryMaxDepth
 
 	browseRecursive(ctx, client, rootNodeID, nodeClassFilter, visited, 1, maxDepth, &results)
 

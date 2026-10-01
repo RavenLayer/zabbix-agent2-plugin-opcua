@@ -26,6 +26,7 @@ import (
 
 	"github.com/gopcua/opcua"
 	"github.com/gopcua/opcua/ua"
+	"golang.zabbix.com/sdk/plugin"
 )
 
 // mockDiscoveryClient simulates Browse responses for discoveryHandler tests.
@@ -242,5 +243,135 @@ func Test_discoveryHandler_filterAll(t *testing.T) {
 	// "all" matches Variable, Object, and Method.
 	if len(items) != 3 {
 		t.Fatalf("expected 3 items for filter 'all', got %d: %v", len(items), items)
+	}
+}
+
+// mockDepthClient returns different children depending on which node is browsed,
+// allowing tests to verify depth limiting behavior.
+type mockDepthClient struct {
+	// browseMap maps nodeID string -> browse results for that node.
+	browseMap map[string][]*ua.BrowseResult
+}
+
+func (c *mockDepthClient) Node(id *ua.NodeID) *opcua.Node { return nil }
+func (c *mockDepthClient) Read(ctx context.Context, req *ua.ReadRequest) (*ua.ReadResponse, error) {
+	return nil, nil
+}
+func (c *mockDepthClient) Browse(ctx context.Context, req *ua.BrowseRequest) (*ua.BrowseResponse, error) {
+	if len(req.NodesToBrowse) > 0 {
+		nodeStr := req.NodesToBrowse[0].NodeID.String()
+		if results, ok := c.browseMap[nodeStr]; ok {
+			return &ua.BrowseResponse{Results: results}, nil
+		}
+	}
+	return &ua.BrowseResponse{Results: []*ua.BrowseResult{}}, nil
+}
+
+// Test_discoveryHandler_maxDepth verifies that with DiscoveryMaxDepth=1,
+// nodes at depth 2 are NOT discovered.
+func Test_discoveryHandler_maxDepth(t *testing.T) {
+	// Tree structure:
+	// root (ns=0;i=85) -> depth 1
+	//   ├── Folder1 (ns=2;i=100) [Object]  -> depth 1 child
+	//   │     └── DeepVar (ns=2;i=200) [Variable]  -> depth 2 child
+	//   └── TopVar (ns=2;i=101) [Variable]  -> depth 1 child
+
+	folder1ID := ua.NewNumericNodeID(2, 100)
+	deepVarID := ua.NewNumericNodeID(2, 200)
+	topVarID := ua.NewNumericNodeID(2, 101)
+	rootID := ua.NewNumericNodeID(0, 85)
+
+	browseMap := map[string][]*ua.BrowseResult{
+		rootID.String(): {
+			{
+				StatusCode: ua.StatusGood,
+				References: []*ua.ReferenceDescription{
+					{
+						NodeID:      &ua.ExpandedNodeID{NodeID: folder1ID},
+						DisplayName: &ua.LocalizedText{Text: "Folder1"},
+						NodeClass:   ua.NodeClassObject,
+					},
+					{
+						NodeID:      &ua.ExpandedNodeID{NodeID: topVarID},
+						DisplayName: &ua.LocalizedText{Text: "TopVar"},
+						NodeClass:   ua.NodeClassVariable,
+					},
+				},
+			},
+		},
+		folder1ID.String(): {
+			{
+				StatusCode: ua.StatusGood,
+				References: []*ua.ReferenceDescription{
+					{
+						NodeID:      &ua.ExpandedNodeID{NodeID: deepVarID},
+						DisplayName: &ua.LocalizedText{Text: "DeepVar"},
+						NodeClass:   ua.NodeClassVariable,
+					},
+				},
+			},
+		},
+	}
+
+	client := &mockDepthClient{browseMap: browseMap}
+
+	// With DiscoveryMaxDepth=1, only depth-1 nodes should be found.
+	params := map[string]string{
+		"NodeClassFilter": "all",
+	}
+	Impl.Configure(&plugin.GlobalOptions{}, []byte("DiscoveryMaxDepth=1"))
+
+	got, err := discoveryHandler(context.Background(), client, params)
+	if err != nil {
+		t.Fatalf("discoveryHandler returned error: %v", err)
+	}
+
+	var items []LLDItem
+	if err := json.Unmarshal([]byte(got.(string)), &items); err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+
+	// At depth 1, we should see Folder1 and TopVar but NOT DeepVar.
+	if len(items) != 2 {
+		t.Fatalf("expected 2 items at depth 1, got %d: %v", len(items), items)
+	}
+
+	names := map[string]bool{}
+	for _, item := range items {
+		names[item.NodeName] = true
+	}
+	if !names["Folder1"] {
+		t.Error("expected Folder1 to be discovered at depth 1")
+	}
+	if !names["TopVar"] {
+		t.Error("expected TopVar to be discovered at depth 1")
+	}
+	if names["DeepVar"] {
+		t.Error("DeepVar should NOT be discovered at depth 1")
+	}
+
+	// With DiscoveryMaxDepth=2, DeepVar should also be found.
+	Impl.Configure(&plugin.GlobalOptions{}, []byte("DiscoveryMaxDepth=2"))
+
+	got2, err := discoveryHandler(context.Background(), client, params)
+	if err != nil {
+		t.Fatalf("discoveryHandler returned error: %v", err)
+	}
+
+	var items2 []LLDItem
+	if err := json.Unmarshal([]byte(got2.(string)), &items2); err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+
+	if len(items2) != 3 {
+		t.Fatalf("expected 3 items at depth 2, got %d: %v", len(items2), items2)
+	}
+
+	names2 := map[string]bool{}
+	for _, item := range items2 {
+		names2[item.NodeName] = true
+	}
+	if !names2["DeepVar"] {
+		t.Error("expected DeepVar to be discovered at depth 2")
 	}
 }

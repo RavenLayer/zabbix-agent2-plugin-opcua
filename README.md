@@ -44,6 +44,9 @@ To configure the plugin, use `opcua.conf` (or `zabbix_agent2.conf`).
 * `Plugins.OPCUA.Timeout` — maximum time in seconds to wait for an OPC UA server to respond to requests.  
   *Default value:* inherits global agent `Timeout` (limits: 1–30 sec).
 
+* `Plugins.OPCUA.DiscoveryMaxDepth` — maximum recursion depth for the `opcua.discovery` key.  
+  *Default value:* `3`
+
 ### Session Options
 
 Each session is configured under `Plugins.OPCUA.Sessions.<session_name>.*` or as defaults under `Plugins.OPCUA.Default.*`:
