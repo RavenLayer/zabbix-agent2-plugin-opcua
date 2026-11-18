@@ -141,7 +141,10 @@ func (c *ConnManager) GetClient(ctx context.Context, params map[string]string, t
 		return nil, fmt.Errorf("failed to get endpoints from %s: %w", uri, err)
 	}
 
-	ep := opcua.SelectEndpoint(endpoints, mSecurityPolicy, mSecurityMode)
+	ep, err := opcua.SelectEndpoint(endpoints, mSecurityPolicy, mSecurityMode)
+	if err == nil {
+		return nil, fmt.Errorf("failed to select endpoints with policy %s and mode %s: %w", mSecurityPolicy, mSecurityMode, err)
+	}
 
 	ep.EndpointURL = uri
 
